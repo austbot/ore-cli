@@ -12,6 +12,7 @@ use solana_sdk::{
     keccak::{hashv, Hash as KeccakHash},
     signature::Signer,
 };
+use tokio::sync::Semaphore;
 
 use crate::{
     cu_limits::{CU_LIMIT_MINE, CU_LIMIT_RESET},
@@ -29,7 +30,7 @@ impl Miner {
         self.register().await;
         let mut stdout = stdout();
         let mut rng = rand::thread_rng();
-
+        let sem = Arc::new(Semaphore::new(5));
         // Start mining loop
         loop {
             // Fetch account state
@@ -53,6 +54,7 @@ impl Miner {
             // Submit mine tx.
             // Use busses randomly so on each epoch, transactions don't pile on the same busses
             println!("\n\nSubmitting hash for validation...");
+
             loop {
                 // Reset epoch, if needed
                 let treasury = get_treasury(self.cluster.clone()).await;
@@ -96,6 +98,8 @@ impl Miner {
                     }
                     Err(_err) => {
                         // TODO
+                        println!("Error: {}", _err);
+                        break;
                     }
                 }
             }
